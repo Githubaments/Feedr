@@ -4,31 +4,43 @@ import plotly.express as px
 import re
 
 # Function to parse text data
-def parse_data(data):
-    # Split the data by double newlines
-    orders = data.strip().split('\n\n')
-    
-    # Define the pattern to extract information
-    pattern = re.compile(r'Your Regular Expression Here')
+def parse_order(text):
+    # Regular expression to match the order data format
+    pattern = re.compile(
+        r'(\d{2} [A-Za-z]+ \d{2}) at (\d{2}:\d{2} - \d{2}:\d{2} \(GMT\))\n'
+        r'(Closed)\n'
+        r'(lunch)\n'
+        r'(Delivery)\n'
+        r'([A-Za-z ]+)\n'
+        r'(\dx [A-Za-z ]+)\n\n'
+        r'((?:.*\n)*?)'  # Non-greedy match for multiple lines of ingredients
+        r'(\d+\.\d+) credits\n\n'
+        r'(\d+\.\d+) credits'
+    )
 
-    # List to hold all orders
-    all_orders = []
+    orders = text.strip().split('\n\n\n')  # Splitting based on the pattern in provided data
+    parsed_orders = []
 
-    # Process each order
     for order in orders:
         match = pattern.search(order)
         if match:
-            all_orders.append(match.groups())
-    
-    # Convert to a DataFrame
-    columns = ['Date', 'Time', 'Status', 'Meal', 'DeliveryType', 'Vendor', 'Items', 'Ingredients', 'Total', 'Subsidised']
-    df = pd.DataFrame(all_orders, columns=columns)
-    
-    # Convert Total and Subsidised to numeric
-    df['Total'] = pd.to_numeric(df['Total'])
-    df['Subsidised'] = pd.to_numeric(df['Subsidised'])
-    
-    return df
+            date, time, status, meal, delivery_type, vendor, item, ingredients, total, subsidised = match.groups()
+            ingredients = ingredients.strip().split('\n') if ingredients.strip() else []
+            parsed_orders.append({
+                'date': date.strip(),
+                'time': time.strip(),
+                'status': status.strip(),
+                'meal': meal.strip(),
+                'delivery_type': delivery_type.strip(),
+                'vendor': vendor.strip(),
+                'item': item.strip(),
+                'ingredients': ingredients,
+                'total': float(total.strip()),
+                'subsidised': float(subsidised.strip())
+            })
+
+    return parsed_orders
+
 
 # Streamlit interface
 st.title("Order Analysis App")
