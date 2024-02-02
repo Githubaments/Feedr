@@ -6,31 +6,52 @@ def split_into_orders(text_data):
     # Split on two newline characters, which seems to be the consistent separator between orders
     return re.split(r'\n\n+', text_data.strip())
 
-def parse_order(order_text):
-    # Adjusted regex pattern to capture the structure of an individual order
-    order_pattern = re.compile(
-        r'(?P<Date>\d{2} Jan \d{2}) at (?P<Time>[\d: -]+ \(GMT\))\n'
-        r'(?P<Status>\w+)\n'
-        r'(?P<Meal>\w+)\n'
-        r'(?P<DeliveryType>\w+)\n'
-        r'(?P<Vendor>[^\n]+)\n'
-        r'(?P<Item>1x [^\n]+)\n'  # Assuming '1x ' prefix is consistent
-        r'(?P<Ingredients>(?:.*\n)*?)'  # Non-greedy match for ingredients list
-        r'(?P<Total>\d+\.\d+) credits\n'
-        r'(?P<Subsidised>\d+\.\d+) credits',
-        re.DOTALL  # Allows '.' to match across multiple lines for Ingredients
-    )
-    match = order_pattern.search(order_text)
-    if match:
-        order = match.groupdict()
-        order['Total'] = float(order['Total'])
-        order['Subsidised'] = float(order['Subsidised'])
-        order['Payment'] = order['Total'] - order['Subsidised']
-        order['Ingredients'] = [ingredient for ingredient in order['Ingredients'].strip().split('\n') if ingredient]
-        order['Item'] = order['Item'].replace('1x ', '')
-        return order
-    else:
-        return None
+def parse_orders(text_data):
+    # Split the entire input into lines
+    lines = text_data.strip().split('\n')
+    
+    # Initialize variables for processing
+    orders = []
+    current_order = {}
+    reading_ingredients = False
+    
+    for line in lines:
+        if line.strip() == '' and current_order:  # End of an order
+            # Finalize the current order
+            orders.append(current_order)
+            current_order = {}  # Reset for the next order
+            reading_ingredients = False
+        elif 'DATE' in line:  # Indicates the start of an order
+            reading_ingredients = False  # Reset flag
+        elif ' at ' in line and 'GMT' in line:  # Date line
+            current_order['Date'] = line.split(' at ')[0]
+        elif 'credits' in line:
+            if 'Total' not in current_order:
+                current_order['Total'] = float(line.split()[0])
+            else:
+                current_order['Subsidised'] = float(line.split()[0])
+                current_order['Payment'] = current_order['Total'] - current_order['Subsidised']
+        elif line.startswith('1x '):
+            current_order['Item'] = line[3:]  # Remove '1x ' prefix
+            reading_ingredients = True
+            current_order['Ingredients'] = []
+        elif reading_ingredients:
+            current_order['Ingredients'].append(line)
+        elif line in ['Closed', 'lunch', 'Delivery']:  # Status, Meal, DeliveryType lines
+            # These lines indicate specific fields, but if they are consistent, you might not need to store them
+            continue
+        else:
+            # Vendor or other fields not explicitly handled above
+            current_order['Vendor'] = line
+    
+    # Add the last order if the loop ends without adding it
+    if current_order:
+        orders.append(current_order)
+    
+    return pd.DataFrame(orders)
+
+# Streamlit interface code remains the same
+
 
 def parse_orders(text_data):
     orders_text = split_into_orders(text_data)
