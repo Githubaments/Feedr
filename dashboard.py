@@ -2,52 +2,54 @@ import streamlit as st
 import pandas as pd
 
 def parse_orders(text_data):
-    orders = []
-    current_order = {'Ingredients': []}  # Initialize with an empty 'Ingredients' list
-    credits_counter = 0  # Counter to differentiate between Total and Subsidised
+    # Initialize a list to hold all parsed orders
+    parsed_orders = []
 
-    for line in text_data.split('\n'):
+    # Split the input text into lines for processing
+    lines = text_data.split('\n')
+
+    # Temporary storage for the current order's details
+    current_order = {}
+
+    for line in lines:
         line = line.strip()
-
-        # Reset for new order
-        if not line:
-            if current_order:
-                # Ensure the last order is added
-                orders.append(current_order)
-                current_order = {'Ingredients': []}
-                credits_counter = 0  # Reset counter for the next order
-            continue
-
-        if 'DATE' in line or 'STATUS' in line or 'MEAL' in line or 'DELIVERY TYPE' in line:
-            # These lines can be parsed for additional order details if necessary
-            pass
-        elif 'credits' in line:
-            value = float(line.split()[0])
-            if credits_counter == 0:  # First occurrence
-                current_order['Total'] = value
-                credits_counter += 1
-            else:  # Second occurrence
-                current_order['Subsidised'] = value
-                # Calculate Payment now that we have both values
-                current_order['Payment'] = current_order['Total'] - current_order['Subsidised']
-        elif line.startswith('1x '):  # Item line found
-            current_order['Item'] = line[3:]  # Remove '1x ' prefix
-        elif 'at' in line and 'GMT' in line:  # Date and time line
-            # Assuming the date is always at the start of the order
-            current_order['Date'] = line.split(' at ')[0]
+        if not line and current_order:  # End of an order
+            # Add the current order to the list and reset for the next order
+            parsed_orders.append(current_order)
+            current_order = {}
         else:
-            # Assuming the line before items start is always the Vendor
-            if 'Vendor' not in current_order:
-                current_order['Vendor'] = line
-            else:
-                # All other lines before the 'Total' are considered as ingredients
-                current_order['Ingredients'].append(line)
+            # Split the line into key-value pairs based on the first colon encountered
+            parts = line.split(',', 1)
+            if len(parts) == 2:
+                key, value = parts[0], parts[1]
 
-    # Add the last order if it wasn't added
-    if current_order and 'Total' in current_order and 'Subsidised' in current_order:
-        orders.append(current_order)
+                # Assign values to the corresponding keys in the current_order dictionary
+                if key in ['DATE', 'STATUS', 'MEAL', 'DELIVERY TYPE', 'VENDOR', 'ITEMS']:
+                    current_order[key] = value
+                elif 'credits' in line:
+                    # Handle monetary values separately
+                    if 'TOTAL' not in current_order:
+                        current_order['TOTAL'] = float(value.split()[0])
+                    else:
+                        current_order['SUBSIDISED'] = float(value.split()[0])
+                        # Calculate payment once both total and subsidised are known
+                        current_order['PAYMENT'] = current_order['TOTAL'] - current_order['SUBSIDISED']
 
-    return pd.DataFrame(orders)
+    # Ensure the last order is added if the loop ends without an empty line
+    if current_order:
+        parsed_orders.append(current_order)
+
+    # Convert the list of orders into a DataFrame
+    df = pd.DataFrame(parsed_orders)
+
+    # Correcting column names and ensuring all expected columns are present
+    expected_columns = ['DATE', 'STATUS', 'MEAL', 'DELIVERY TYPE', 'VENDOR', 'ITEMS', 'TOTAL', 'SUBSIDISED', 'PAYMENT']
+    for col in expected_columns:
+        if col not in df.columns:
+            df[col] = None  # Add missing columns with None values
+
+    return df
+
 
 
 # Integration with Streamlit interface remains as previously described
