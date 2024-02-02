@@ -2,65 +2,53 @@ import streamlit as st
 import pandas as pd
 
 def parse_orders(text_data):
-    # Initialize variables for processing
     orders = []
-    current_order = {}
-    lines = text_data.strip().split('\n')
-    
-    # Helper function to reset the current order and prepare for the next
-    def reset_current_order():
-        return {'Ingredients': []}
-    
-    # Indicators of the current section being processed
-    process_next_line_as_vendor = False
-    
-    for line in lines:
+    current_order = {'Ingredients': []}  # Initialize with an empty 'Ingredients' list
+    credits_counter = 0  # Counter to differentiate between Total and Subsidised
+
+    for line in text_data.split('\n'):
         line = line.strip()
-        
-        if not line:  # Blank line indicates the end of a section or order
-            if current_order:  # End of an order
+
+        # Reset for new order
+        if not line:
+            if current_order:
+                # Ensure the last order is added
                 orders.append(current_order)
-                current_order = reset_current_order()
-                process_next_line_as_vendor = False  # Reset the indicator
+                current_order = {'Ingredients': []}
+                credits_counter = 0  # Reset counter for the next order
             continue
-        
-        # Using flags to identify what to do with each line
-        if process_next_line_as_vendor:
-            current_order['Vendor'] = line
-            process_next_line_as_vendor = False  # Reset the flag
-            continue
-        
-        # Identifying sections based on known prefixes or patterns
-        if 'DATE' in line:
-            # Skip the DATE line or parse it if you need the date
+
+        if 'DATE' in line or 'STATUS' in line or 'MEAL' in line or 'DELIVERY TYPE' in line:
+            # These lines can be parsed for additional order details if necessary
             pass
-        elif 'at' in line and 'GMT' in line:  # This line contains the date and time
-            current_order['Date'] = line.split(' at ')[0]
-        elif 'Delivery' in line:  # The line before the vendor
-            process_next_line_as_vendor = True
-        elif line.startswith('1x '):  # Marks the beginning of items
-            current_order['Item'] = line[3:]  # Remove '1x ' prefix
         elif 'credits' in line:
-            # Assuming the Total and Subsidised are always at the end
-            if 'Total' not in current_order:
-                current_order['Total'] = float(line.split()[0])
-            else:
-                current_order['Subsidised'] = float(line.split()[0])
+            value = float(line.split()[0])
+            if credits_counter == 0:  # First occurrence
+                current_order['Total'] = value
+                credits_counter += 1
+            else:  # Second occurrence
+                current_order['Subsidised'] = value
+                # Calculate Payment now that we have both values
+                current_order['Payment'] = current_order['Total'] - current_order['Subsidised']
+        elif line.startswith('1x '):  # Item line found
+            current_order['Item'] = line[3:]  # Remove '1x ' prefix
+        elif 'at' in line and 'GMT' in line:  # Date and time line
+            # Assuming the date is always at the start of the order
+            current_order['Date'] = line.split(' at ')[0]
         else:
-            # Handle ingredients and other details as needed
-            current_order.setdefault('Ingredients', []).append(line)
-    
-    # Don't forget to add the last order if it ends without a trailing newline
-    if current_order:
+            # Assuming the line before items start is always the Vendor
+            if 'Vendor' not in current_order:
+                current_order['Vendor'] = line
+            else:
+                # All other lines before the 'Total' are considered as ingredients
+                current_order['Ingredients'].append(line)
+
+    # Add the last order if it wasn't added
+    if current_order and 'Total' in current_order and 'Subsidised' in current_order:
         orders.append(current_order)
-    
-    # Calculate Payment for each order
-    for order in orders:
-        total = order.get('Total', 0.0)
-        subsidised = order.get('Subsidised', 0.0)
-        order['Payment'] = total - subsidised
-    
+
     return pd.DataFrame(orders)
+
 
 # Integration with Streamlit interface remains as previously described
 
