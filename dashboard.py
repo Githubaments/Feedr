@@ -33,6 +33,11 @@ def parse_orders(text_data):
     
     # Convert the list of dictionaries to a pandas DataFrame
     df = pd.DataFrame(orders)
+    df['Item'] = df['Item'].str.replace('1x ', '')
+    df = pd.DataFrame(orders).drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1, errors='ignore')
+    df['Payment'] = df['Total'] - df['Subsidised']
+
+
     return df
 
 # Streamlit app interface
