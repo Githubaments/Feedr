@@ -28,20 +28,6 @@ def parse_data(data):
         # Return an empty DataFrame if no orders were parsed
         return pd.DataFrame()
 
-# Then, in your Streamlit app, you would use it like this:
-if st.button("Analyze Orders"):
-    if data:
-        df = parse_data(data)
-        if not df.empty:
-            st.write(df)
-            total_spend = df['Total'].sum()
-            st.write("Total Spend: ", total_spend)
-            # Other analysis and plotting code...
-        else:
-            st.error("No orders were parsed. Please check the data format.")
-
-
-
 # Streamlit interface
 st.title("Order Analysis App")
 
