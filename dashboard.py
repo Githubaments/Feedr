@@ -34,7 +34,7 @@ def parse_orders(text_data):
         order['Item'] = order['Item'][3:]  # Remove leading '1x ' from Item
         
     # Convert the list of dictionaries to a pandas DataFrame and drop unnecessary columns
-    df = pd.DataFrame(orders).drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1)
+    df = pd.DataFrame(orders).drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1, errors='ignore')
     
     return df
 
