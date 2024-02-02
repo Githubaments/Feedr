@@ -1,63 +1,63 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 import re
 
+# Define a function to parse the text data
 def parse_orders(text_data):
-    # Initialize an empty list to hold order dictionaries
-    orders = []
+    # Define the regular expression pattern for the data structure
+    order_pattern = re.compile(
+        r'(?P<Date>\d{2} Jan \d{2}) at (?P<Time>[\d: -]+ \(GMT\))\n'
+        r'(?P<Status>\w+)\n'
+        r'(?P<Meal>\w+)\n'
+        r'(?P<DeliveryType>\w+)\n'
+        r'(?P<Vendor>[\w ]+)\n'
+        r'(?P<Item>[\dx ]+[\w ]+)\n\n'
+        r'(?P<Ingredients>(?:.+\n)*)'  # Non-greedy match for ingredients list
+        r'(?P<Total>\d+\.\d+) credits\n\n'
+        r'(?P<Subsidised>\d+\.\d+) credits',
+        re.MULTILINE
+    )
     
-    # Split the data into individual orders, assuming at least two newlines between orders
-    orders_data = re.split(r'\n\n+', text_data.strip())
+    # Find all matches in the text data
+    matches = order_pattern.finditer(text_data)
     
-    for order_text in orders_data:
-        lines = order_text.strip().split('\n')
-        
-        # Basic check to ensure there are enough lines for an order
-        if len(lines) < 9:  # Minimum expected lines based on provided format
-            continue  # Skip this order if it doesn't meet the expected structure
-        
-        # Extracting data with checks
-        date = lines[0]
-        vendor = lines[4]
-        item = lines[5].replace('1x ', '') if lines[5].startswith('1x ') else lines[5]
-        ingredients = lines[6:-2]  # Might be empty, which is fine
-        
-        # Safely extracting Total and Subsidised values
-        try:
-            total = float(lines[-2].split()[0])
-            subsidised = float(lines[-1].split()[0])
-        except (ValueError, IndexError):
-            # If conversion fails or lines are missing, skip this order
-            continue
-        
-        payment = total - subsidised
-        
-        orders.append({
-            'Date': date,
-            'Vendor': vendor,
-            'Item': item,
-            'Ingredients': ingredients,
-            'Total': total,
-            'Subsidised': subsidised,
-            'Payment': payment
-        })
+    # Create a list of dictionaries from the matches
+    orders = [match.groupdict() for match in matches]
     
-    # Convert the list of order dictionaries to a DataFrame
+    # Convert 'Total' and 'Subsidised' to numeric types and 'Ingredients' to lists
+    for order in orders:
+        order['Total'] = float(order['Total'])
+        order['Subsidised'] = float(order['Subsidised'])
+        order['Ingredients'] = order['Ingredients'].strip().split('\n') if order['Ingredients'].strip() else []
+    
+    # Convert the list of dictionaries to a pandas DataFrame
     df = pd.DataFrame(orders)
-    
     return df
 
 # Streamlit app interface
-st.title("Order Analysis")
+st.title("Lunch Order Analysis")
 
+# Text area for user to paste data
 data = st.text_area("Paste your order data here:", height=300)
 
+# Button to parse and analyze data
 if st.button("Analyze Orders"):
     if data:
+        # Parse the text data into a DataFrame
         df = parse_orders(data)
+        
         if not df.empty:
-            st.write("Parsed Orders:", df)
-            # You can further analyze or visualize the DataFrame `df` here as needed
+            # Display the DataFrame
+            st.write(df)
+
+            # Perform DataFrame operations
+            total_spend = df['Total'].sum()
+            st.write(f"Total Spend: {total_spend} credits")
+
+            # Visualization example
+            fig = px.bar(df, x='Vendor', y='Total', title='Total Spend by Vendor')
+            st.plotly_chart(fig)
         else:
             st.error("Could not parse any orders from the provided data. Please check the format.")
     else:
