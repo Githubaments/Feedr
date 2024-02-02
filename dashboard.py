@@ -4,42 +4,42 @@ import plotly.express as px
 import re
 
 # Function to parse text data
-def parse_order(text):
-    # Regular expression to match the order data format
-    pattern = re.compile(
-        r'(\d{2} [A-Za-z]+ \d{2}) at (\d{2}:\d{2} - \d{2}:\d{2} \(GMT\))\n'
-        r'(Closed)\n'
-        r'(lunch)\n'
-        r'(Delivery)\n'
-        r'([A-Za-z ]+)\n'
-        r'(\dx [A-Za-z ]+)\n\n'
-        r'((?:.*\n)*?)'  # Non-greedy match for multiple lines of ingredients
-        r'(\d+\.\d+) credits\n\n'
-        r'(\d+\.\d+) credits'
-    )
+def parse_data(data):
+    orders = data.strip().split('\n\n\n')  # Adjust the split based on the actual data
+    pattern = re.compile(r'Your Regex Here')
 
-    orders = text.strip().split('\n\n\n')  # Splitting based on the pattern in provided data
-    parsed_orders = []
+    # List to hold all orders
+    all_orders = []
 
+    # Process each order
     for order in orders:
-        match = pattern.search(order)
+        match = pattern.match(order)
         if match:
-            date, time, status, meal, delivery_type, vendor, item, ingredients, total, subsidised = match.groups()
-            ingredients = ingredients.strip().split('\n') if ingredients.strip() else []
-            parsed_orders.append({
-                'date': date.strip(),
-                'time': time.strip(),
-                'status': status.strip(),
-                'meal': meal.strip(),
-                'delivery_type': delivery_type.strip(),
-                'vendor': vendor.strip(),
-                'item': item.strip(),
-                'ingredients': ingredients,
-                'total': float(total.strip()),
-                'subsidised': float(subsidised.strip())
-            })
+            all_orders.append(match.groups())
 
-    return parsed_orders
+    # Convert to a DataFrame if all_orders is not empty
+    if all_orders:
+        df = pd.DataFrame(all_orders, columns=['Date', 'Time', 'Status', 'Meal', 'DeliveryType', 'Vendor', 'Item', 'Ingredients', 'Total', 'Subsidised'])
+        # Convert 'Total' and 'Subsidised' to numeric types
+        df['Total'] = pd.to_numeric(df['Total'], errors='coerce')
+        df['Subsidised'] = pd.to_numeric(df['Subsidised'], errors='coerce')
+        return df
+    else:
+        # Return an empty DataFrame if no orders were parsed
+        return pd.DataFrame()
+
+# Then, in your Streamlit app, you would use it like this:
+if st.button("Analyze Orders"):
+    if data:
+        df = parse_data(data)
+        if not df.empty:
+            st.write(df)
+            total_spend = df['Total'].sum()
+            st.write("Total Spend: ", total_spend)
+            # Other analysis and plotting code...
+        else:
+            st.error("No orders were parsed. Please check the data format.")
+
 
 
 # Streamlit interface
