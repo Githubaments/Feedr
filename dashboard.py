@@ -1,64 +1,47 @@
 import streamlit as st
 import pandas as pd
-import re
-
-def split_into_orders(text_data):
-    # Split on two newline characters, which seems to be the consistent separator between orders
-    return re.split(r'\n\n+', text_data.strip())
 
 def parse_orders(text_data):
-    # Split the entire input into lines
-    lines = text_data.strip().split('\n')
-    
     # Initialize variables for processing
     orders = []
     current_order = {}
-    reading_ingredients = False
-    
+    lines = text_data.split('\n')
+
     for line in lines:
-        if line.strip() == '' and current_order:  # End of an order
-            # Finalize the current order
-            orders.append(current_order)
-            current_order = {}  # Reset for the next order
-            reading_ingredients = False
-        elif 'DATE' in line:  # Indicates the start of an order
-            reading_ingredients = False  # Reset flag
-        elif ' at ' in line and 'GMT' in line:  # Date line
-            current_order['Date'] = line.split(' at ')[0]
-        elif 'credits' in line:
-            if 'Total' not in current_order:
-                current_order['Total'] = float(line.split()[0])
-            else:
-                current_order['Subsidised'] = float(line.split()[0])
-                current_order['Payment'] = current_order['Total'] - current_order['Subsidised']
-        elif line.startswith('1x '):
-            current_order['Item'] = line[3:]  # Remove '1x ' prefix
-            reading_ingredients = True
-            current_order['Ingredients'] = []
-        elif reading_ingredients:
-            current_order['Ingredients'].append(line)
-        elif line in ['Closed', 'lunch', 'Delivery']:  # Status, Meal, DeliveryType lines
-            # These lines indicate specific fields, but if they are consistent, you might not need to store them
+        line = line.strip()
+        if not line:  # Checks for empty lines indicating possible end of an order
+            if current_order:  # If there's an order being processed, add it to the list
+                orders.append(current_order)
+                current_order = {}  # Reset for the next order
+        elif 'DATE' in line or 'STATUS' in line or 'MEAL' in line or 'DELIVERY TYPE' in line:
+            # Skip these lines or handle accordingly
             continue
         else:
-            # Vendor or other fields not explicitly handled above
-            current_order['Vendor'] = line
-    
-    # Add the last order if the loop ends without adding it
+            # Parse the line based on known formats, assuming ':' is a delimiter
+            parts = line.split(':')
+            key = parts[0].strip()
+            value = parts[1].strip() if len(parts) > 1 else None
+
+            if key in ['Total', 'Subsidised']:
+                current_order[key] = float(value.split()[0]) if value else 0.0
+            else:
+                current_order[key] = value
+
+    # Handling the last order in case there's no trailing newline
     if current_order:
         orders.append(current_order)
-    
-    return pd.DataFrame(orders)
 
-# Streamlit interface code remains the same
+    # Convert list of dictionaries to DataFrame
+    df = pd.DataFrame(orders)
 
+    # Post-processing DataFrame
+    if not df.empty:
+        df['Payment'] = df['Total'] - df['Subsidised']
+        df['Item'] = df['Item'].str.replace('1x ', '', regex=False)  # Clean up item names
 
-def parse_orders(text_data):
-    orders_text = split_into_orders(text_data)
-    orders = [parse_order(order_text) for order_text in orders_text if parse_order(order_text) is not None]
-    return pd.DataFrame(orders)
+    return df
 
-# Streamlit app interface
+# Streamlit interface
 st.title("Lunch Order Analysis")
 
 data = st.text_area("Paste your order data here:", height=300)
@@ -68,10 +51,6 @@ if st.button("Analyze Orders"):
         df = parse_orders(data)
         if not df.empty:
             st.write("Parsed Orders:", df)
-            
-            # Visualization: Total Spend by Vendor
-            fig = px.bar(df, x='Vendor', y='Payment', title='Total Payment by Vendor')
-            st.plotly_chart(fig)
         else:
             st.error("Could not parse any orders from the provided data. Please check the format.")
     else:
