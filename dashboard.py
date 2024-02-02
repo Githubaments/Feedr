@@ -3,17 +3,17 @@ import pandas as pd
 import plotly.express as px
 import re
 
-# Define a function to parse the text data
+# Function to parse the text data
 def parse_orders(text_data):
-    # Define the regular expression pattern for the data structure
+    # Regular expression pattern to match each order's details
     order_pattern = re.compile(
         r'(?P<Date>\d{2} Jan \d{2}) at (?P<Time>[\d: -]+ \(GMT\))\n'
         r'(?P<Status>\w+)\n'
         r'(?P<Meal>\w+)\n'
         r'(?P<DeliveryType>\w+)\n'
         r'(?P<Vendor>[\w ]+)\n'
-        r'(?P<Item>[\dx ]+[\w ]+)\n\n'
-        r'(?P<Ingredients>(?:.+\n)*)'  # Non-greedy match for ingredients list
+        r'(?P<Item>1x [\w ]+[\w ]*)\n\n'  # Adjusted to capture leading '1x '
+        r'(?P<Ingredients>(?:.*\n)*)'  # Non-greedy match for ingredients list
         r'(?P<Total>\d+\.\d+) credits\n\n'
         r'(?P<Subsidised>\d+\.\d+) credits',
         re.MULTILINE
@@ -25,20 +25,23 @@ def parse_orders(text_data):
     # Create a list of dictionaries from the matches
     orders = [match.groupdict() for match in matches]
     
-    # Convert 'Total' and 'Subsidised' to numeric types and 'Ingredients' to lists
+    # Process each order to adjust data according to requirements
     for order in orders:
         order['Total'] = float(order['Total'])
         order['Subsidised'] = float(order['Subsidised'])
-        order['Ingredients'] = order['Ingredients'].strip().split('\n') if order['Ingredients'].strip() else []
+        order['Payment'] = order['Total'] - order['Subsidised']
+        order['Ingredients'] = [ingredient.strip() for ingredient in order['Ingredients'].strip().split('\n') if ingredient.strip()]  # Split and strip each ingredient
+        order['Item'] = order['Item'][3:]  # Remove leading '1x ' from Item
+        
+    # Convert the list of dictionaries to a pandas DataFrame and drop unnecessary columns
+    df = pd.DataFrame(orders).drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1)
     
-    # Convert the list of dictionaries to a pandas DataFrame
-    df = pd.DataFrame(orders)
     return df
 
-# Streamlit app interface
+# Streamlit interface
 st.title("Lunch Order Analysis")
 
-# Text area for user to paste data
+# Text area for the user to paste data
 data = st.text_area("Paste your order data here:", height=300)
 
 # Button to parse and analyze data
@@ -51,12 +54,8 @@ if st.button("Analyze Orders"):
             # Display the DataFrame
             st.write(df)
 
-            # Perform DataFrame operations
-            total_spend = df['Total'].sum()
-            st.write(f"Total Spend: {total_spend} credits")
-
-            # Visualization example
-            fig = px.bar(df, x='Vendor', y='Total', title='Total Spend by Vendor')
+            # Visualization example: Total Spend by Vendor
+            fig = px.bar(df, x='Vendor', y='Payment', title='Total Payment by Vendor')
             st.plotly_chart(fig)
         else:
             st.error("Could not parse any orders from the provided data. Please check the format.")
