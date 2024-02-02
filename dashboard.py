@@ -1,56 +1,54 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import re
 
-@st.cache
-def load_data(file_path):
-    return pd.read_csv(file_path)
+# Function to parse text data
+def parse_data(data):
+    # Split the data by double newlines
+    orders = data.strip().split('\n\n')
+    
+    # Define the pattern to extract information
+    pattern = re.compile(r'Your Regular Expression Here')
 
-def main():
-    st.title("Personal Health Dashboard")
+    # List to hold all orders
+    all_orders = []
 
-    file_path = st.file_uploader("Upload your personal data CSV file", type=["csv"])
-    if file_path is not None:
-        df = load_data(file_path)
-        st.dataframe(df)
+    # Process each order
+    for order in orders:
+        match = pattern.search(order)
+        if match:
+            all_orders.append(match.groups())
+    
+    # Convert to a DataFrame
+    columns = ['Date', 'Time', 'Status', 'Meal', 'DeliveryType', 'Vendor', 'Items', 'Ingredients', 'Total', 'Subsidised']
+    df = pd.DataFrame(all_orders, columns=columns)
+    
+    # Convert Total and Subsidised to numeric
+    df['Total'] = pd.to_numeric(df['Total'])
+    df['Subsidised'] = pd.to_numeric(df['Subsidised'])
+    
+    return df
 
-        # Choose the header to plot
-        selected_header = st.selectbox("Select a header to plot over time", df.columns)
+# Streamlit interface
+st.title("Order Analysis App")
 
-        # Plotting the selected header over time using Plotly
-        fig = px.line(df, x='Time of Measurement', y=selected_header)
+# Text area for user to paste data
+data = st.text_area("Paste your order data here:", height=300)
+
+# Button to parse data
+if st.button("Analyze Orders"):
+    if data:
+        df = parse_data(data)
+        st.write(df)
+
+        # Show stats using pandas
+        total_spend = df['Total'].sum()
+        st.write("Total Spend: ", total_spend)
+
+        # Show a plot using plotly
+        fig = px.bar(df, x='Vendor', y='Total', title="Total Spend by Vendor")
         st.plotly_chart(fig)
 
-        # Showing some statistics
-        st.write("### Personal Data Statistics")
-        st.write("Mean value: ", df[selected_header].mean())
-        st.write("Minimum value: ", df[selected_header].min())
-        st.write("Maximum value: ", df[selected_header].max())
-
-    google_fit_path = st.file_uploader("Upload your Google Fit data CSV file", type=["csv"])
-    if google_fit_path is not None:
-        df_google_fit = load_data(google_fit_path)
-        st.dataframe(df_google_fit)
-
-        # Choose the header to plot
-        selected_header_google_fit = st.selectbox("Select a header to plot over time", df_google_fit.columns)
-
-        # Plotting the selected header over time using Plotly
-        fig_google_fit = px.line(df_google_fit, x='Time of Measurement', y=selected_header_google_fit)
-        st.plotly_chart(fig_google_fit)
-
-        # Showing some statistics
-        st.write("### Google Fit Data Statistics")
-        st.write("Mean value: ", df_google_fit[selected_header_google_fit].mean())
-        st.write("Minimum value: ", df_google_fit[selected_header_google_fit].min())
-        st.write("Maximum value: ", df_google_fit[selected_header_google_fit].max())
-
-        # 7-day moving average of heart points
-        df_google_fit['7-day avg heart points'] = df_google_fit['Heart Points'].rolling(window=7).mean()
-        fig_7day_avg = px.line(df_google_fit, x='Time of Measurement', y='7-day avg heart points')
-        st.plotly_chart(fig_7day_avg)
-
-        # Count of days with more than 10,000 steps
-        df_google_fit['over_10000'] = df_google_fit['Steps'] >= 10000
-        fig_steps = px.bar(df_google_fit, x='Time of Measurement', y='over_10000', color='over_10000')
-       
+    else:
+        st.error("Please paste order data above.")
