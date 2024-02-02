@@ -51,7 +51,7 @@ data = st.text_area("Paste your order data here:", height=300)
 # Button to parse data
 if st.button("Analyze Orders"):
     if data:
-        df = parse_data(data)
+        df = parse_order(data)
         st.write(df)
 
         # Show stats using pandas
