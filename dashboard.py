@@ -48,19 +48,25 @@ st.title("Order Analysis App")
 # Text area for user to paste data
 data = st.text_area("Paste your order data here:", height=300)
 
-# Button to parse data
+# Button to parse and analyze data
 if st.button("Analyze Orders"):
     if data:
-        df = parse_order(data)
-        st.write(df)
+        try:
+            # Parse the string of data into a list of dictionaries
+            data = json.loads(data)
 
-        # Show stats using pandas
-        total_spend = df['Total'].sum()
-        st.write("Total Spend: ", total_spend)
+            # Convert the list of dictionaries into a DataFrame
+            df = pd.DataFrame(data)
 
-        # Show a plot using plotly
-        fig = px.bar(df, x='Vendor', y='Total', title="Total Spend by Vendor")
-        st.plotly_chart(fig)
+            # Perform DataFrame operations
+            total_spend = df['total'].sum()
+            st.write(f"Total Spend: {total_spend}")
 
+            # Add more analysis and visualization as needed
+
+        except json.JSONDecodeError as e:
+            st.error(f"JSON parsing error: {e}")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
     else:
         st.error("Please paste order data above.")
