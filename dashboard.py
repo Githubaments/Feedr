@@ -1,42 +1,41 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import re
 
-# Define a function to parse the text data
-def parse_orders(text_data):
-    # Regular expression pattern to capture order details
+def split_into_orders(text_data):
+    # Split on two newline characters, which seems to be the consistent separator between orders
+    return re.split(r'\n\n+', text_data.strip())
+
+def parse_order(order_text):
+    # Adjusted regex pattern to capture the structure of an individual order
     order_pattern = re.compile(
         r'(?P<Date>\d{2} Jan \d{2}) at (?P<Time>[\d: -]+ \(GMT\))\n'
         r'(?P<Status>\w+)\n'
         r'(?P<Meal>\w+)\n'
         r'(?P<DeliveryType>\w+)\n'
         r'(?P<Vendor>[^\n]+)\n'
-        r'(?P<Item>[\dx ]+[^\n]+)\n\n'  # Adjusted to handle items more flexibly
-        r'(?P<Ingredients>(?:.*\n)*)'  # Capture ingredients, handling multiple lines
-        r'(?P<Total>\d+\.\d+) credits\n\n'
+        r'(?P<Item>1x [^\n]+)\n'  # Assuming '1x ' prefix is consistent
+        r'(?P<Ingredients>(?:.*\n)*?)'  # Non-greedy match for ingredients list
+        r'(?P<Total>\d+\.\d+) credits\n'
         r'(?P<Subsidised>\d+\.\d+) credits',
-        re.MULTILINE | re.DOTALL  # Match across multiple lines
+        re.DOTALL  # Allows '.' to match across multiple lines for Ingredients
     )
-    
-    matches = order_pattern.finditer(text_data)
-    orders = []
-    
-    for match in matches:
+    match = order_pattern.search(order_text)
+    if match:
         order = match.groupdict()
         order['Total'] = float(order['Total'])
         order['Subsidised'] = float(order['Subsidised'])
-        order['Ingredients'] = order['Ingredients'].strip().split('\n') if order['Ingredients'].strip() else []
-        orders.append(order)
-    
-    if orders:
-        df = pd.DataFrame(orders)
-        df.drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1, errors='ignore', inplace=True)
-        df['Payment'] = df['Total'] - df['Subsidised']
-        df['Item'] = df['Item'].str.replace('1x ', '', regex=False)
-        return df
+        order['Payment'] = order['Total'] - order['Subsidised']
+        order['Ingredients'] = [ingredient for ingredient in order['Ingredients'].strip().split('\n') if ingredient]
+        order['Item'] = order['Item'].replace('1x ', '')
+        return order
     else:
-        return pd.DataFrame()
+        return None
+
+def parse_orders(text_data):
+    orders_text = split_into_orders(text_data)
+    orders = [parse_order(order_text) for order_text in orders_text if parse_order(order_text) is not None]
+    return pd.DataFrame(orders)
 
 # Streamlit app interface
 st.title("Lunch Order Analysis")
@@ -50,12 +49,8 @@ if st.button("Analyze Orders"):
             st.write("Parsed Orders:", df)
             
             # Visualization: Total Spend by Vendor
-            fig = px.bar(df, x='Vendor', y='Total', color='Vendor', title='Total Spend by Vendor')
+            fig = px.bar(df, x='Vendor', y='Payment', title='Total Payment by Vendor')
             st.plotly_chart(fig)
-            
-            # Additional analysis as needed
-            total_spend = df['Total'].sum()
-            st.write(f"Total Spend: {total_spend} credits")
         else:
             st.error("Could not parse any orders from the provided data. Please check the format.")
     else:
