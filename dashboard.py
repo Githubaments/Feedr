@@ -67,6 +67,7 @@ data = st.text_area("Paste your order data here:", height=300)
 if st.button("Analyze Orders"):
     if data:
         df = parse_orders(data)
+        df = df.dropna(subset=['Item'])
         if not df.empty:
             st.write("Parsed Orders:", df)
         else:
