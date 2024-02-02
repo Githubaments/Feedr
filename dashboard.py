@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import re
+import json
 
 # Function to parse text data
 def parse_data(data):
