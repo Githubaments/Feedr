@@ -1,69 +1,52 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import re
 
-# Function to parse the text data
 def parse_orders(text_data):
-    # Split the data on two or more newlines to account for varying gaps between orders
-    orders_data = re.split(r'\n\n+', text_data.strip())
+    # Split the data into individual orders more reliably
+    orders_data = text_data.strip().split('\n\n\n')  # Adjust based on your actual data delimiter
     
-    # Define the regular expression pattern to capture the details of each order
-    order_pattern = re.compile(
-        r'(?P<Date>\d{2} Jan \d{2}) at (?P<Time>[\d: -]+ \(GMT\))\n'
-        r'(?P<Status>\w+)\n'
-        r'(?P<Meal>\w+)\n'
-        r'(?P<DeliveryType>\w+)\n'
-        r'(?P<Vendor>[^\n]+)\n'  # Use a more generic capture for Vendor to handle spaces and letters
-        r'(?P<Item>[^\n]+)\n'  # Similarly, capture the item more broadly
-        r'(?P<Ingredients>(?:.*\n)*?)'  # Non-greedy match for potentially multiple ingredients
-        r'(?P<Total>\d+\.\d+) credits\n\n'
-        r'(?P<Subsidised>\d+\.\d+) credits',
-        re.DOTALL  # Allows '.' to match newlines, accommodating multi-line Ingredients
-    )
-    
+    # Initialize an empty list to hold order dictionaries
     orders = []
     
+    # Loop over each order data block
     for order_text in orders_data:
-        match = order_pattern.search(order_text)
-        if match:
-            order = match.groupdict()
-            order['Total'] = float(order['Total'])
-            order['Subsidised'] = float(order['Subsidised'])
-            order['Payment'] = order['Total'] - order['Subsidised']
-            order['Item'] = order['Item'].replace('1x ', '')  # Remove '1x ' prefix from Item
-            order['Ingredients'] = order['Ingredients'].strip().split('\n') if order['Ingredients'].strip() else []
-            orders.append(order)
+        # Splitting each order's text by newlines
+        lines = order_text.strip().split('\n')
+        
+        # Parsing each part of the order
+        order = {
+            'Date': lines[0],
+            'Status': lines[1],
+            'Meal': lines[2],
+            'DeliveryType': lines[3],
+            'Vendor': lines[4],
+            'Item': lines[5].replace('1x ', ''),  # Remove '1x ' from item name
+            'Ingredients': lines[6:-2],  # Assuming ingredients are always before the last two lines
+            'Total': float(lines[-2].split()[0]),  # Assuming the second last line is Total
+            'Subsidised': float(lines[-1].split()[0])  # Assuming the last line is Subsidised
+        }
+        order['Payment'] = order['Total'] - order['Subsidised']  # Calculate Payment
+        
+        # Adding the parsed order to the list
+        orders.append(order)
     
-    # Convert the list of dictionaries to a pandas DataFrame
-    if orders:
-        df = pd.DataFrame(orders)
-        # Drop unnecessary columns if present
-        df.drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1, errors='ignore', inplace=True)
-        return df
-    else:
-        return pd.DataFrame()  # Return an empty DataFrame if no orders were matched
+    # Convert the list of order dictionaries to a DataFrame
+    df = pd.DataFrame(orders)
+    
+    return df
 
+# Streamlit app interface
+st.title("Order Analysis")
 
-# Streamlit interface
-st.title("Lunch Order Analysis")
-
-# Text area for the user to paste data
 data = st.text_area("Paste your order data here:", height=300)
 
-# Button to parse and analyze data
 if st.button("Analyze Orders"):
     if data:
-        # Parse the text data into a DataFrame
         df = parse_orders(data)
-        
         if not df.empty:
-            # Display the DataFrame
-            st.write(df)
-
-            # Visualization example: Total Spend by Vendor
-            fig = px.bar(df, x='Vendor', y='Payment', title='Total Payment by Vendor')
-            st.plotly_chart(fig)
+            st.write("Parsed Orders:", df)
+            # You can further analyze or visualize the DataFrame `df` here as needed
         else:
             st.error("Could not parse any orders from the provided data. Please check the format.")
     else:
