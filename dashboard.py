@@ -5,38 +5,45 @@ import re
 
 # Function to parse the text data
 def parse_orders(text_data):
-    # Regular expression pattern to match each order's details
+    # Split the data on two or more newlines to account for varying gaps between orders
+    orders_data = re.split(r'\n\n+', text_data.strip())
+    
+    # Define the regular expression pattern to capture the details of each order
     order_pattern = re.compile(
         r'(?P<Date>\d{2} Jan \d{2}) at (?P<Time>[\d: -]+ \(GMT\))\n'
         r'(?P<Status>\w+)\n'
         r'(?P<Meal>\w+)\n'
         r'(?P<DeliveryType>\w+)\n'
-        r'(?P<Vendor>[\w ]+)\n'
-        r'(?P<Item>1x [\w ]+[\w ]*)\n\n'  # Adjusted to capture leading '1x '
-        r'(?P<Ingredients>(?:.*\n)*)'  # Non-greedy match for ingredients list
+        r'(?P<Vendor>[^\n]+)\n'  # Use a more generic capture for Vendor to handle spaces and letters
+        r'(?P<Item>[^\n]+)\n'  # Similarly, capture the item more broadly
+        r'(?P<Ingredients>(?:.*\n)*?)'  # Non-greedy match for potentially multiple ingredients
         r'(?P<Total>\d+\.\d+) credits\n\n'
         r'(?P<Subsidised>\d+\.\d+) credits',
-        re.MULTILINE
+        re.DOTALL  # Allows '.' to match newlines, accommodating multi-line Ingredients
     )
     
-    # Find all matches in the text data
-    matches = order_pattern.finditer(text_data)
+    orders = []
     
-    # Create a list of dictionaries from the matches
-    orders = [match.groupdict() for match in matches]
+    for order_text in orders_data:
+        match = order_pattern.search(order_text)
+        if match:
+            order = match.groupdict()
+            order['Total'] = float(order['Total'])
+            order['Subsidised'] = float(order['Subsidised'])
+            order['Payment'] = order['Total'] - order['Subsidised']
+            order['Item'] = order['Item'].replace('1x ', '')  # Remove '1x ' prefix from Item
+            order['Ingredients'] = order['Ingredients'].strip().split('\n') if order['Ingredients'].strip() else []
+            orders.append(order)
     
-    # Process each order to adjust data according to requirements
-    for order in orders:
-        order['Total'] = float(order['Total'])
-        order['Subsidised'] = float(order['Subsidised'])
-        order['Payment'] = order['Total'] - order['Subsidised']
-        order['Ingredients'] = [ingredient.strip() for ingredient in order['Ingredients'].strip().split('\n') if ingredient.strip()]  # Split and strip each ingredient
-        order['Item'] = order['Item'][3:]  # Remove leading '1x ' from Item
-        
-    # Convert the list of dictionaries to a pandas DataFrame and drop unnecessary columns
-    df = pd.DataFrame(orders).drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1, errors='ignore')
-    
-    return df
+    # Convert the list of dictionaries to a pandas DataFrame
+    if orders:
+        df = pd.DataFrame(orders)
+        # Drop unnecessary columns if present
+        df.drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1, errors='ignore', inplace=True)
+        return df
+    else:
+        return pd.DataFrame()  # Return an empty DataFrame if no orders were matched
+
 
 # Streamlit interface
 st.title("Lunch Order Analysis")
