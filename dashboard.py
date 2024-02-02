@@ -3,33 +3,44 @@ import pandas as pd
 import re
 
 def parse_orders(text_data):
-    # Split the data into individual orders more reliably
-    orders_data = text_data.strip().split('\n\n\n')  # Adjust based on your actual data delimiter
-    
     # Initialize an empty list to hold order dictionaries
     orders = []
     
-    # Loop over each order data block
+    # Split the data into individual orders, assuming at least two newlines between orders
+    orders_data = re.split(r'\n\n+', text_data.strip())
+    
     for order_text in orders_data:
-        # Splitting each order's text by newlines
         lines = order_text.strip().split('\n')
         
-        # Parsing each part of the order
-        order = {
-            'Date': lines[0],
-            'Status': lines[1],
-            'Meal': lines[2],
-            'DeliveryType': lines[3],
-            'Vendor': lines[4],
-            'Item': lines[5].replace('1x ', ''),  # Remove '1x ' from item name
-            'Ingredients': lines[6:-2],  # Assuming ingredients are always before the last two lines
-            'Total': float(lines[-2].split()[0]),  # Assuming the second last line is Total
-            'Subsidised': float(lines[-1].split()[0])  # Assuming the last line is Subsidised
-        }
-        order['Payment'] = order['Total'] - order['Subsidised']  # Calculate Payment
+        # Basic check to ensure there are enough lines for an order
+        if len(lines) < 9:  # Minimum expected lines based on provided format
+            continue  # Skip this order if it doesn't meet the expected structure
         
-        # Adding the parsed order to the list
-        orders.append(order)
+        # Extracting data with checks
+        date = lines[0]
+        vendor = lines[4]
+        item = lines[5].replace('1x ', '') if lines[5].startswith('1x ') else lines[5]
+        ingredients = lines[6:-2]  # Might be empty, which is fine
+        
+        # Safely extracting Total and Subsidised values
+        try:
+            total = float(lines[-2].split()[0])
+            subsidised = float(lines[-1].split()[0])
+        except (ValueError, IndexError):
+            # If conversion fails or lines are missing, skip this order
+            continue
+        
+        payment = total - subsidised
+        
+        orders.append({
+            'Date': date,
+            'Vendor': vendor,
+            'Item': item,
+            'Ingredients': ingredients,
+            'Total': total,
+            'Subsidised': subsidised,
+            'Payment': payment
+        })
     
     # Convert the list of order dictionaries to a DataFrame
     df = pd.DataFrame(orders)
