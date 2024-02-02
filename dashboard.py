@@ -32,11 +32,9 @@ def parse_orders(text_data):
         order['Ingredients'] = order['Ingredients'].strip().split('\n') if order['Ingredients'].strip() else []
     
     # Convert the list of dictionaries to a pandas DataFrame
-    df = pd.DataFrame(orders)
-    df['Item'] = df['Item'].str.replace('1x', '')
     df = pd.DataFrame(orders).drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1, errors='ignore')
     df['Payment'] = df['Total'] - df['Subsidised']
-
+    df['Item'] = df['Item'].str.replace('1x ', '')
 
     return df
 
