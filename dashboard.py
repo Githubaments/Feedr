@@ -71,8 +71,13 @@ def analyze_and_visualize(df):
     fig_vendor_counts.update_layout(xaxis_title="Vendor", yaxis_title="Order Count")
 
     # Most popular vendors by total paid
-    vendor_totals = df.groupby('Vendor')['Paid'].sum().sort_values(ascending=False)
+    vendor_totals = df.groupby('Vendor')['Total'].sum().sort_values(ascending=False)
     fig_vendor_totals = px.bar(vendor_totals.head(5), title="Top 5 Vendors by Total Paid")
+    fig_vendor_totals.update_layout(xaxis_title="Vendor", yaxis_title="Total Paid")
+
+    # Most popular vendors by total paid
+    vendor_totals = df.groupby('Vendor')['Paid'].sum().sort_values(ascending=False)
+    fig_vendor_totals = px.bar(vendor_totals.head(5), title="Top 5 Vendors by Total Own Paid")
     fig_vendor_totals.update_layout(xaxis_title="Vendor", yaxis_title="Total Paid")
 
     # Top 5 dishes by count
