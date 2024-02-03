@@ -18,6 +18,7 @@ def edit_df(df):
     df = df.drop(['Time', 'Status', 'Meal', 'Delivery Type'], axis=1, errors='ignore')
     df[['Total', 'Subsidised']] = df[['Total', 'Subsidised']].apply(pd.to_numeric, errors='coerce')
     df['Paid'] = df['Total'] - df['Subsidised'] 
+    st.write(df.columns)
     return df
 
 def parse_orders(text_data):
