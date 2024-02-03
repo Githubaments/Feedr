@@ -13,6 +13,7 @@ def find_subsudused(input_string):
         result = input_string
     return result
 
+@st.cache
 def edit_df(df):
     df['Items'] = df['Items'].str.replace('1x ', '')
     df = df.drop(['Time', 'Status', 'Meal', 'Delivery Type'], axis=1, errors='ignore')
@@ -112,7 +113,6 @@ def analyze_and_visualize(df):
 
     return
 
-@st.cache
 def load_data():
     data = st.text_area("Paste your order data here:", height=300)
     return data
