@@ -91,6 +91,17 @@ def analyze_and_visualize(df):
     st.plotly_chart(fig_vendor_totals, use_container_width=True)
     st.plotly_chart(fig_top_dishes, use_container_width=True)
 
+
+    # Group by month and vendor, then count unique occurrences
+    vendor_counts_by_time = df.groupby([df['Date'].dt.to_period('M'), 'Vendor']).size().reset_index(name='Counts')
+
+    # Visualization
+    fig = px.line(vendor_counts_by_time, x='Date', y='Counts', color='Vendor', 
+                  title='Vendor Order Counts Over Time',
+                  labels={'Counts': 'Number of Orders'})
+    fig.update_layout(xaxis_title='Time', yaxis_title='Number of Orders', xaxis=dict(tickformat="%b %Y"))
+    st.plotly_chart(fig, use_container_width=True)
+
     return
 
 # Streamlit interface
