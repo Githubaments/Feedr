@@ -16,7 +16,7 @@ def find_subsudused(input_string):
 def edit_df(df):
     df['Items'] = df['Items'].str.replace('1x ', '')
     df = df.drop(['Time', 'Status', 'Meal', 'Delivery Type'], axis=1, errors='ignore')
-    df
+    df[['Total', 'Subsidised']] = df[['Total', 'Subsidised']].apply(pd.to_numeric, errors='coerce')
     df['Paid'] = df['Total'] - df['Subsidised'] 
     return df
 
