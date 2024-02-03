@@ -15,52 +15,33 @@ def find_subsudused(input_string):
 
 def parse_orders(text_data):
     text_data = find_subsudused(text_data)
-    orders = []
-    current_order = {'Ingredients': []}  # Initialize with an empty 'Ingredients' list
-    credits_counter = 0  # Counter to differentiate between Total and Subsidised
+    # Splitting the input text into individual records
+    records = re.split(r'\n(?=\d{2} \w+ \d{2})', input_text.strip())
+    
+    # Initialize an empty list to hold the parsed data
+    data = []
+    
+    # Parsing each record
+    for record in records:
+        lines = record.strip().split('\n')
+        date = lines[0].split(' at ')[0]
+        status = lines[1]
+        meal = lines[2]
+        delivery_type = lines[3]
+        vendor = lines[4]
+        items_start_index = 5
+        items_end_index = len(lines) - 3  # Items end before the last 3 lines which include the total and subsidised amounts
+        items = ' '.join(lines[items_start_index:items_end_index])
+        total = lines[-3].split(' ')[0]  # Assuming the total and subsidised amounts are always the last 3 lines
+        subsidised = lines[-1].split(' ')[0]
+    
+        data.append([date, status, meal, delivery_type, vendor, items, total, subsidised])
+    
+    # Create a DataFrame
+    columns = ['Date', 'Status', 'Meal', 'Delivery Type', 'Vendor', 'Items', 'Total', 'Subsidised']
+    df = pd.DataFrame(data, columns=columns)
 
-    for line in text_data.split('\n'):
-        line = line.strip()
-
-        # Reset for new order
-        if not line:
-            if current_order:
-                # Ensure the last order is added
-                orders.append(current_order)
-                current_order = {'Ingredients': []}
-                credits_counter = 0  # Reset counter for the next order
-            continue
-
-        if 'DATE' in line or 'STATUS' in line or 'MEAL' in line or 'DELIVERY TYPE' in line:
-            # These lines can be parsed for additional order details if necessary
-            pass
-        elif 'credits' in line:
-            value = float(line.split()[0])
-            if credits_counter == 0:  # First occurrence
-                current_order['Total'] = value
-                credits_counter += 1
-            else:  # Second occurrence
-                current_order['Subsidised'] = value
-                # Calculate Payment now that we have both values
-                current_order['Payment'] = current_order['Total'] - current_order['Subsidised']
-        elif line.startswith('1x '):  # Item line found
-            current_order['Item'] = line[3:]  # Remove '1x ' prefix
-        elif 'at' in line and 'GMT' in line:  # Date and time line
-            # Assuming the date is always at the start of the order
-            current_order['Date'] = line.split(' at ')[0]
-        else:
-            # Assuming the line before items start is always the Vendor
-            if 'Vendor' not in current_order:
-                current_order['Vendor'] = line
-            else:
-                # All other lines before the 'Total' are considered as ingredients
-                current_order['Ingredients'].append(line)
-
-    # Add the last order if it wasn't added
-    if current_order and 'Total' in current_order and 'Subsidised' in current_order:
-        orders.append(current_order)
-
-    return pd.DataFrame(orders)
+    return df
 
 
 
