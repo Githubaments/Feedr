@@ -56,6 +56,16 @@ def analyze_and_visualize(df):
     import plotly.express as px
 
     df['Year'] = df['Date'].str.split(' ').apply(lambda x: x[2])
+    vendor_counts_sorted = df.groupby(['Vendor', 'Year']).size().reset_index(name='Order Count').sort_values(by='Order Count', ascending=False)
+
+    fig_vendor_counts = px.bar(vendor_counts_sorted, x='Vendor', y='Order Count', color='Year', 
+                           title="Top Vendors by Order Count, Split by Year", 
+                           text='Year', category_orders={"Vendor": vendor_counts_sorted['Vendor']})
+
+    fig_vendor_counts.update_layout(xaxis_title="Vendor", yaxis_title="Order Count")
+
+    st.plotly_chart(fig_vendor_counts, use_container_width=True)
+
     
     # Calculating totals
     total_sum = df['Total'].sum()
@@ -94,8 +104,7 @@ def analyze_and_visualize(df):
 
     # Group by month and vendor, then count unique occurrences
     vendor_counts_by_time = df.groupby([df['Year'], 'Vendor']).size().reset_index(name='Counts')
-
-    # Visualization
+    vendor_counts_by_time    
     fig = px.line(vendor_counts_by_time, x='Year', y='Counts', color='Vendor', 
                   title='Vendor Order Counts Over Time',
                   labels={'Counts': 'Number of Orders'})
