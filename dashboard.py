@@ -119,7 +119,7 @@ return data
 
 # Streamlit interface
 st.title("Lunch Order Analysis")
-load_data():
+load_data()
 
 if st.button("Analyze Orders"):
     if data:
