@@ -17,7 +17,7 @@ def parse_orders(text_data):
     import re
     text_data = find_subsudused(text_data)
     # Splitting the input text into individual records
-    records = re.split(r'\n(?=\d{2} \w+ \d{2})', input_text.strip())
+    records = re.split(r'\n(?=\d{2} \w+ \d{2})', text_data.strip())
     
     # Initialize an empty list to hold the parsed data
     data = []
