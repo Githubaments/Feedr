@@ -14,6 +14,7 @@ def find_subsudused(input_string):
     return result
 
 def edit_df(df):
+    df
     df['Item'] = df['Item'].str.replace('1x ', '')
     df = df.drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1, errors='ignore')
     return df
