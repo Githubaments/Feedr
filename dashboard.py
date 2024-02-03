@@ -77,8 +77,8 @@ def analyze_and_visualize(df):
 
     # Most popular vendors by total paid
     vendor_totals = df.groupby('Vendor')['Paid'].sum().sort_values(ascending=False)
-    fig_vendor_totals = px.bar(vendor_totals.head(5), title="Top 5 Vendors by Total Own Paid")
-    fig_vendor_totals.update_layout(xaxis_title="Vendor", yaxis_title="Total Paid")
+    fig_vendor_totals_own = px.bar(vendor_totals.head(5), title="Top 5 Vendors by Total Own Paid")
+    fig_vendor_totals_own.update_layout(xaxis_title="Vendor", yaxis_title="Total Paid")
 
     # Top 5 dishes by count
     top_dishes = df['Items'].value_counts().head(5)
@@ -88,6 +88,7 @@ def analyze_and_visualize(df):
     # Displaying visualizations
     st.plotly_chart(fig_vendor_counts, use_container_width=True)
     st.plotly_chart(fig_vendor_totals, use_container_width=True)
+    st.plotly_chart(fig_vendor_totals_own, use_container_width=True)
     st.plotly_chart(fig_top_dishes, use_container_width=True)
 
     return
