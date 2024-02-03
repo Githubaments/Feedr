@@ -74,7 +74,7 @@ def analyze_and_visualize(df):
 
     # Visualization for Most Popular Vendors by Total Paid, split by year
     vendor_totals_by_year = df.groupby(['Vendor', 'Year'])['Total'].sum().reset_index()
-    fig_vendor_totals = px.bar(vendor_totals_by_year, x='Vendor', y='Paid', color='Year', 
+    fig_vendor_totals = px.bar(vendor_totals_by_year, x='Vendor', y='Total', color='Year', 
                                title="Vendors by Total Paid, Split by Year")
     fig_vendor_totals.update_layout(xaxis_title="Vendor", yaxis_title="Total Paid")
 
