@@ -52,14 +52,39 @@ def parse_orders(text_data):
 
     return df
 
+# Analysis and visualization function
+def analyze_and_visualize(df):
+    # Calculating totals
+    total_sum = df['Total'].sum()
+    subsidised_sum = df['Subsidised'].sum()
+    paid_sum = df['Paid'].sum()
 
+    # Displaying totals
+    st.write(f"Total Sum: {total_sum}")
+    st.write(f"Subsidised Sum: {subsidised_sum}")
+    st.write(f"Paid Sum: {paid_sum}")
 
+    # Most popular vendors by order count
+    vendor_counts = df['Vendor'].value_counts()
+    fig_vendor_counts = px.bar(vendor_counts.head(5), title="Top 5 Most Popular Vendors by Order Count")
+    fig_vendor_counts.update_layout(xaxis_title="Vendor", yaxis_title="Order Count")
 
-# Integration with Streamlit interface remains as previously described
+    # Most popular vendors by total paid
+    vendor_totals = df.groupby('Vendor')['Paid'].sum().sort_values(ascending=False)
+    fig_vendor_totals = px.bar(vendor_totals.head(5), title="Top 5 Vendors by Total Paid")
+    fig_vendor_totals.update_layout(xaxis_title="Vendor", yaxis_title="Total Paid")
 
+    # Top 5 dishes by count
+    top_dishes = df['Items'].value_counts().head(5)
+    fig_top_dishes = px.bar(top_dishes, title="Top 5 Dishes by Count")
+    fig_top_dishes.update_layout(xaxis_title="Dish", yaxis_title="Count")
 
-# Streamlit app interface remains unchanged
+    # Displaying visualizations
+    st.plotly_chart(fig_vendor_counts, use_container_width=True)
+    st.plotly_chart(fig_vendor_totals, use_container_width=True)
+    st.plotly_chart(fig_top_dishes, use_container_width=True)
 
+    return
 
 # Streamlit interface
 st.title("Lunch Order Analysis")
@@ -70,6 +95,7 @@ if st.button("Analyze Orders"):
     if data:
         df = parse_orders(data)
         df = edit_df(df)
+        analyze_and_visualize(df)
         #df = df.dropna(subset=['Item'])
         if not df.empty:
             st.write("Parsed Orders:", df)
