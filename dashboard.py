@@ -54,6 +54,7 @@ def parse_orders(text_data):
 
 # Analysis and visualization function
 def analyze_and_visualize(df):
+    import plotly.express as px
     # Calculating totals
     total_sum = df['Total'].sum()
     subsidised_sum = df['Subsidised'].sum()
