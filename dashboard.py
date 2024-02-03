@@ -112,7 +112,6 @@ def analyze_and_visualize(df):
 
     return
 
-@st.cache
 def load_data():
     data = st.text_area("Paste your order data here:", height=300)
     return data
@@ -121,22 +120,18 @@ def load_data():
 st.title("Lunch Order Analysis")
 data = load_data()
 
-if st.button("Analyze Orders"):
-    if data:
-        df = parse_orders(data)
-        df = edit_df(df)
-        df['Year'] = df['Date'].str.split(' ').apply(lambda x: x[2])
-        unique_years = df['Year'].unique()
-        unique_years.sort()  # Optional: sort the years
+df = parse_orders(data)
+df = edit_df(df)
+df['Year'] = df['Date'].str.split(' ').apply(lambda x: x[2])
+unique_years = df['Year'].unique()
+unique_years.sort()  # Optional: sort the years
         
-        selected_years = st.multiselect('Select Years:', options=unique_years, default=unique_years)
+selected_years = st.multiselect('Select Years:', options=unique_years, default=unique_years)
         
-        df = df[df['Year'].isin(selected_years)]
-        analyze_and_visualize(df)
-        #df = df.dropna(subset=['Item'])
-        if not df.empty:
-            st.write("Parsed Orders:", df)
-        else:
-            st.error("Could not parse any orders from the provided data. Please check the format.")
-    else:
-        st.error("Please paste order data above.")
+df = df[df['Year'].isin(selected_years)]
+analyze_and_visualize(df)
+if not df.empty:
+    st.write("Parsed Orders:", df)
+else:
+    st.error("Could not parse any orders from the provided data. Please check the format.")
+
