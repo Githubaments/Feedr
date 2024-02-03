@@ -120,6 +120,9 @@ def load_data():
 st.title("Lunch Order Analysis")
 data = load_data()
 
+if len(data) == 0:
+    st.stop()
+
 df = parse_orders(data)
 df = edit_df(df)
 df['Year'] = df['Date'].str.split(' ').apply(lambda x: x[2])
