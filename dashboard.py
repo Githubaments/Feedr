@@ -115,11 +115,11 @@ def analyze_and_visualize(df):
 @st.cache
 def load_data():
     data = st.text_area("Paste your order data here:", height=300)
-return data
+    return data
 
 # Streamlit interface
 st.title("Lunch Order Analysis")
-load_data()
+data = load_data()
 
 if st.button("Analyze Orders"):
     if data:
