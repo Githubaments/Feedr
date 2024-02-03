@@ -55,7 +55,6 @@ def parse_orders(text_data):
 def analyze_and_visualize(df):
     import plotly.express as px
 
-    df['Year'] = df['Date'].str.split(' ').apply(lambda x: x[2])
     vendor_counts_sorted = df.groupby(['Vendor', 'Year']).size().reset_index(name='Order Count').sort_values(by='Order Count', ascending=False)
 
     fig_vendor_counts = px.bar(vendor_counts_sorted, x='Vendor', y='Order Count', color='Year', 
@@ -122,6 +121,13 @@ if st.button("Analyze Orders"):
     if data:
         df = parse_orders(data)
         df = edit_df(df)
+        df['Year'] = df['Date'].str.split(' ').apply(lambda x: x[2])
+        unique_years = df['Year'].unique()
+        unique_years.sort()  # Optional: sort the years
+        
+        selected_years = st.multiselect('Select Years:', options=unique_years, default=unique_years)
+        
+        df = df[df['Year'].isin(selected_years)]
         analyze_and_visualize(df)
         #df = df.dropna(subset=['Item'])
         if not df.empty:
