@@ -89,7 +89,6 @@ def analyze_and_visualize(df):
     # Displaying visualizations
     st.plotly_chart(fig_vendor_counts, use_container_width=True)
     st.plotly_chart(fig_vendor_totals, use_container_width=True)
-    st.plotly_chart(fig_vendor_totals_own, use_container_width=True)
     st.plotly_chart(fig_top_dishes, use_container_width=True)
 
     return
