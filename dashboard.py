@@ -18,7 +18,6 @@ def edit_df(df):
     df = df.drop(['Time', 'Status', 'Meal', 'Delivery Type'], axis=1, errors='ignore')
     df[['Total', 'Subsidised']] = df[['Total', 'Subsidised']].apply(pd.to_numeric, errors='coerce')
     df['Paid'] = df['Total'] - df['Subsidised'] 
-    st.write(df.columns)
     return df
 
 def parse_orders(text_data):
@@ -55,6 +54,9 @@ def parse_orders(text_data):
 # Analysis and visualization function
 def analyze_and_visualize(df):
     import plotly.express as px
+
+    df['Year'] = df['Date'].str.split(' ').apply(lambda x: x[2])
+    
     # Calculating totals
     total_sum = df['Total'].sum()
     subsidised_sum = df['Subsidised'].sum()
@@ -65,24 +67,23 @@ def analyze_and_visualize(df):
     st.write(f"Subsidised Sum: {subsidised_sum}")
     st.write(f"Paid Sum: {paid_sum}")
 
-    # Most popular vendors by order count
-    vendor_counts = df['Vendor'].value_counts()
-    fig_vendor_counts = px.bar(vendor_counts.head(5), title="Top 5 Most Popular Vendors by Order Count")
+    # Visualization for Most Popular Vendors by Order Count, split by year
+    fig_vendor_counts = px.bar(df, x='Vendor', color='Year', title="Top Vendors by Order Count, Split by Year",
+                               labels={"count": "Order Count"}, text='Year')
     fig_vendor_counts.update_layout(xaxis_title="Vendor", yaxis_title="Order Count")
 
-    # Most popular vendors by total paid
-    vendor_totals = df.groupby('Vendor')['Total'].sum().sort_values(ascending=False)
-    fig_vendor_totals = px.bar(vendor_totals.head(5), title="Top 5 Vendors by Total Paid")
+    # Visualization for Most Popular Vendors by Total Paid, split by year
+    vendor_totals_by_year = df.groupby(['Vendor', 'Year'])['Total'].sum().reset_index()
+    fig_vendor_totals = px.bar(vendor_totals_by_year, x='Vendor', y='Paid', color='Year', 
+                               title="Vendors by Total Paid, Split by Year")
     fig_vendor_totals.update_layout(xaxis_title="Vendor", yaxis_title="Total Paid")
 
-    # Most popular vendors by total paid
-    vendor_totals = df.groupby('Vendor')['Paid'].sum().sort_values(ascending=False)
-    fig_vendor_totals_own = px.bar(vendor_totals.head(5), title="Top 5 Vendors by Total Own Paid")
-    fig_vendor_totals_own.update_layout(xaxis_title="Vendor", yaxis_title="Total Paid")
-
-    # Top 5 dishes by count
-    top_dishes = df['Items'].value_counts().head(5)
-    fig_top_dishes = px.bar(top_dishes, title="Top 5 Dishes by Count")
+    # Visualization for Top 5 Dishes, split by year
+    # Note: Adjusting the approach to identify top dishes by year might require more specific handling
+    top_dishes_by_year = df.groupby(['Items', 'Year']).size().reset_index(name='counts')
+    top_dishes_by_year_sorted = top_dishes_by_year.sort_values(by='counts', ascending=False).head(5)
+    fig_top_dishes = px.bar(top_dishes_by_year_sorted, x='Items', y='counts', color='Year', 
+                            title="Top 5 Dishes by Count, Split by Year")
     fig_top_dishes.update_layout(xaxis_title="Dish", yaxis_title="Count")
 
     # Displaying visualizations
