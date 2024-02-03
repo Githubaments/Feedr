@@ -1,7 +1,20 @@
 import streamlit as st
 import pandas as pd
 
+def find_subsudused(input_string):
+    # Find the last index of the word "SUBSIDISED" in the string
+    last_index = input_string.rfind("SUBSIDISED")
+    
+    # Check if "SUBSIDISED" is found in the string
+    if last_index != -1:
+        # Get everything after the last occurrence of "SUBSIDISED" (excluding "SUBSIDISED" itself)
+        result = input_string[last_index + len("SUBSIDISED"):]
+    else:
+        result = input_string
+    return result
+
 def parse_orders(text_data):
+    text_data = find_subsudused(text_data)
     orders = []
     current_order = {'Ingredients': []}  # Initialize with an empty 'Ingredients' list
     credits_counter = 0  # Counter to differentiate between Total and Subsidised
