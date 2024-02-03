@@ -93,7 +93,7 @@ def analyze_and_visualize(df):
 
 
     # Group by month and vendor, then count unique occurrences
-    vendor_counts_by_time = df.groupby([df['Date'].dt.to_period('M'), 'Vendor']).size().reset_index(name='Counts')
+    vendor_counts_by_time = df.groupby([df['Year'], 'Vendor']).size().reset_index(name='Counts')
 
     # Visualization
     fig = px.line(vendor_counts_by_time, x='Date', y='Counts', color='Vendor', 
