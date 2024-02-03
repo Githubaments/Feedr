@@ -13,6 +13,11 @@ def find_subsudused(input_string):
         result = input_string
     return result
 
+def edit_df(df):
+    df['Iten'] = df['Item'].str.replace('1x ', '')
+    df = df.drop(['Time', 'Status', 'Meal', 'DeliveryType'], axis=1, errors='ignore')
+    return df
+
 def parse_orders(text_data):
     import re
     text_data = find_subsudused(text_data)
