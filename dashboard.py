@@ -96,7 +96,7 @@ def analyze_and_visualize(df):
     vendor_counts_by_time = df.groupby([df['Year'], 'Vendor']).size().reset_index(name='Counts')
 
     # Visualization
-    fig = px.line(vendor_counts_by_time, x='Date', y='Counts', color='Vendor', 
+    fig = px.line(vendor_counts_by_time, x='Year', y='Counts', color='Vendor', 
                   title='Vendor Order Counts Over Time',
                   labels={'Counts': 'Number of Orders'})
     fig.update_layout(xaxis_title='Time', yaxis_title='Number of Orders', xaxis=dict(tickformat="%b %Y"))
